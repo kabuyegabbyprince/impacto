@@ -1,0 +1,885 @@
+# IMPACTO V1 — Updated Feature Specifications
+
+---
+
+## 🚀 COMPLETE SYSTEM FEATURES INVENTORY
+
+Below is the definitive index of all active production-ready modules, components, and tools available in this multi-tenant **Impacto** application:
+
+### 1. Multi-Tenant Gateway & Authentication
+* **Seamless Authentication Pages (`src/pages/auth.tsx`)**: Secure sign-in, account signup, and credentials recovery (Forgot Password, Reset Password).
+* **Workspace Selector Gateways**: Dynamic redirection and pickers (`/org-picker`) for user accounts associated with multiple cooperatives or NGOs.
+
+### 2. Discoverability & White-Labeled Public Portals
+* **Localization Suite (`src/locales/`)**: Complete English (EN), Français (FR), and Kinyarwanda (RW) translation support across all key components.
+* **Core Discovery Feed (`/`)**: Front-facing directory enabling public users to search verified organizations, filter by thematic categories, and access localized FAQs.
+* **Public NGO Brand Portals (`/@slug`)**: Public profile pages detailing cooperative missions, active projects, public bulletins, and donor walls.
+* **On-Site Event Check-In (`/@slug/checkin`)**: Dedicated scanning/attendance page allowing field members to declare live attendance via event QR codes.
+* **Manual MoMo Donation Gateways (`/@slug/donate`)**: Secure local donation collection supporting manual MTN Mobile Money and Airtel Money transaction verification.
+
+### 3. Collaboration Dashboard & Core Workspace
+* **Personalized Dashboard Center (`src/pages/dashboard.tsx`)**: Interactive greeting panel exhibiting community statistics, active trial alerts, and quick actions.
+* **Strategic Goals & KPI Milestones**: Dynamic trackers for NGO mission boundaries, equipped with visual progress bars.
+* **Community News Bulletins / Feeds**: Shared social update streams with pinning capabilities for major announcements.
+
+### 4. Interactive Communication & Moderation Modules
+* **Real-Time Group Conversations (`/dashboard/chat`)**: Multi-channel micro-chat space with secure state bindings.
+* **Rich Messaging Upload Controls**: Interactive selectors support attaching files (PDF, docs up to 50MB), photo sharing, and audio voice messages recorded straight on device.
+* **Topic-Based Channel Rooms**: Admin-moderated sub-groups categorized by general, committee, or private operations.
+* **In-Chat Quick Surveys**: Live WhatsApp-style polls updating percentages dynamically on message cards.
+
+### 5. NGO Financial Bookkeeping & accountability
+* **Double-Entry General Ledgers (`/dashboard/ledger`)**: Complete books managing organizational incomes, operational expenditures, and categorized transaction receipts.
+* **MoMo Verification Registers**: Direct tracking fields linking transactions to verified cash reference keys (MoMo ID / Txn Codes).
+* **Donors & Community Supporters**: Curated tracking tables with pending, verified, or flagged transaction auditing.
+* **Grants & Institutional Funding Tracker**: Dedicated dashboard mapping multiple milestones against financial releases.
+* **Auto-Generating Narrative Annual Reports**: Automated documentation assemblers using elegant charting libraries for fast exports.
+
+### 6. Event Coordination & Scheduling
+* **Interactive Shared Event Calendars (`/dashboard/events`)**: Operational calendars detailing upcoming training sessions and schedules.
+* **Standard RSVP System**: Interactive option blocks ("Attending", "Can't Attend", "Maybe") syncing immediately with expected user count.
+* **Registration Waitlists & Capacity Controls**: Soft caps guarding venue sizing, paired with automatic waitlist escalations.
+
+### 7. Governance, Minutes & Decentralized Voting
+* **Minutes & Agenda Documentation (`/dashboard/meetings`)**: Unified registry for recording formal meeting details and session logs.
+* **Real-Time Quorum Trackers**: Live metrics displays validating legal meetings based on pre-set absolute or percentage criteria.
+* **Community Polls & Decisive Votes (`/dashboard/votes`)**: Secure voting ballots tracking precise response values and checking validity thresholds.
+
+### 8. Document Management & Acknowledgement Engines
+* **Digital Documents Center (`/dashboard/documents`)**: Virtual document library allowing custom folder organization and file distribution.
+* **Binding Acknowledgement Auditing**: Required agreement flags demanding signed user acknowledgement per file version.
+
+### 9. Cooperative Roster & HR Compliance Modules
+* **Searchable NGO Directory (`/dashboard/members`)**: Interactive profiles showcasing active, pending, or suspended members.
+* **Trust Level Identity Verifications**: Secure document upload gates allowing administrators to review scanned passports/IDs for verified member statuses.
+* **Decentralized Role Selection & Promotions**: Admin interfaces allowing regular members to be promoted to "Managers" with custom checkable permissions.
+* **Self-Service Offboardings**: Transparent exit survey configurations recording reasons for leaving for retention analytics.
+
+### 10. Platform Operations & Security
+* **Audit Trail Registries**: Logbooks storing every single data change, user role modification, or database write with complete author mappings.
+* **Platform Operator Superadmin Dashboard (`/platform/admin`)**: Premium SaaS control panel managing platform-wide settings and subscription renewals.
+* **Progressive Web App Integrations**: Offline caching strategies storing vital directories and scheduling cards for low-connectivity environments, backed by service worker bindings.
+
+---
+
+## 1. Member Communication — Real-Time Chat System
+
+### What Was Missing
+
+The original spec had basic group chat with text messages only. It had no voice notes, no file sharing, no local storage of media, no sub-groups, no in-chat polls, and no way to organize conversations by topic or team. For a real organization this means all communication collapses into one noisy channel where a finance discussion sits next to a field operations update sits next to casual conversation. Members stop reading because the signal-to-noise ratio is too low.
+
+### Full Solution
+
+**Message types supported in every channel:**
+
+Every message input bar supports four input modes toggled by icons. Text mode is the default — member types and sends. File mode opens the device file picker and allows uploading any file type (PDF, Word, Excel, images, video clips) up to 50MB per file. The file uploads to Supabase Storage under a path scoped to the org and channel. The message record stores the file URL, file name, file size, and MIME type. Voice note mode activates the device microphone, records while the button is held, releases to send. The voice recording is encoded as WebM/Opus audio, uploaded to Supabase Storage, and the message stores the audio URL and duration in seconds. The recipient sees a play button with a waveform visualization and duration label. Image mode opens the camera or photo library for quick photo sharing.
+
+**Local storage of media:**
+
+When a member receives a file, image, or voice note, a download button appears on the message. Clicking it saves directly to their device using the browser's native download API (`<a href=url download=filename>`). For voice notes, a "Save to device" option appears in the message long-press menu. The application itself does not store media on the device automatically — this would consume device storage without permission. Instead, the user explicitly chooses what to save. All media remains accessible from the server as long as the organization's Supabase Storage quota allows, meaning members can always re-access files from the chat history without needing to have saved them locally.
+
+**Sub-groups and channel management:**
+
+The admin controls all channel creation. From the Chat management page in their dashboard, the admin sees a channel list with a "New Channel" button. Creating a channel requires: a name, an optional description, a type selection (General / Project / Committee / Private), and a member selection interface — a searchable member list with checkboxes where admin selects exactly who belongs in that channel. Unselected members cannot see the channel exists. This allows a Finance Committee channel visible only to the treasurer and admin, a Field Operations channel for program officers, a Board channel for committee members, and a General channel for everyone. Admin can add or remove members from any channel at any time. Removed members lose access immediately and their message history in that channel becomes inaccessible to them but is retained on the server. The data model adds an `is_private BOOLEAN` and `channel_type VARCHAR` to chat_channels. The chat_members table already handles membership scoping per channel.
+
+**In-chat polls (WhatsApp style):**
+
+In any channel, admin or members (if admin allows) can create a quick poll directly inside the conversation. The poll appears as a special message card — not a separate vote page — showing the question, the options as tappable buttons, the current vote count per option shown as a percentage bar, and the total voter count. Tapping an option immediately records the vote and updates the display for everyone in real time. Admin can set whether polls are single-choice or multiple-choice and whether results are visible before voting. Polls have an optional expiry time. After expiry, no new votes are accepted and the final result is displayed permanently in the chat history. This is separate from the formal Votes system which is for official organizational decisions with quorum requirements. In-chat polls are for quick informal decisions — "Which day works for the meeting?" or "Who can attend the workshop?" The database adds a `poll_messages` table: id, message_id (foreign key to chat_messages), question, options JSONB, allow_multiple BOOLEAN, expires_at, created_at. Poll responses go in `poll_responses`: id, poll_id, member_id, selected_options JSONB, created_at, UNIQUE(poll_id, member_id).
+
+**SMS fallback — In Progress for next version:**
+
+Full SMS integration via Africa's Talking API is planned for the next version. In the current version, the notification system sends in-app notifications only. The settings page shows an "SMS Notifications — Coming Soon" section so admins are aware it is planned.
+
+**Database schema for this section:**
+
+```sql
+ALTER TABLE chat_channels 
+  ADD COLUMN channel_type VARCHAR(30) DEFAULT 'general'
+    CHECK (channel_type IN ('general','project','committee','private','announcement')),
+  ADD COLUMN is_private BOOLEAN DEFAULT false,
+  ADD COLUMN created_by UUID REFERENCES users(id);
+
+ALTER TABLE chat_messages
+  ADD COLUMN message_type VARCHAR(20) DEFAULT 'text'
+    CHECK (message_type IN ('text','file','image','voice','poll','system')),
+  ADD COLUMN file_url TEXT,
+  ADD COLUMN file_name VARCHAR(300),
+  ADD COLUMN file_size BIGINT,
+  ADD COLUMN file_mime_type VARCHAR(100),
+  ADD COLUMN voice_duration_seconds INT,
+  ADD COLUMN reply_to_id UUID REFERENCES chat_messages(id);
+
+CREATE TABLE poll_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID REFERENCES chat_messages(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  options JSONB NOT NULL,
+  allow_multiple BOOLEAN DEFAULT false,
+  show_results_before_vote BOOLEAN DEFAULT true,
+  expires_at TIMESTAMPTZ,
+  is_closed BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE poll_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  poll_id UUID REFERENCES poll_messages(id) ON DELETE CASCADE,
+  member_id UUID REFERENCES org_members(id),
+  selected_options JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(poll_id, member_id)
+);
+```
+
+---
+
+## 2. Offline Access — Progressive Web App
+
+### What Was Missing
+
+The application had no offline capability. Every single page required a live internet connection. A member in a rural area trying to check the meeting agenda on their phone with no signal would see a blank screen or a browser error. An admin doing attendance at a field event without connectivity could not open the member list. This makes the application completely unusable in low-connectivity environments which are common across Rwanda outside Kigali.
+
+### Full Solution
+
+**PWA implementation:**
+
+The application is registered as a Progressive Web App by adding a service worker and a web app manifest. The manifest defines the app name, icons, theme color, display mode (standalone — meaning it opens without the browser chrome and looks like a native app), and start URL. Members can install the app on their phone's home screen from the browser prompt, and it opens like a native app.
+
+**What works offline:**
+
+The service worker uses a cache-first strategy for static assets (JavaScript bundles, CSS, fonts, icons) — these never need to be fetched again after first load. For data, a network-first-then-cache strategy applies to key pages. The last loaded version of these pages is available offline: dashboard home, member list, upcoming events list, current meeting agenda, latest 20 news posts, documents list, and goals list. The service worker intercepts fetch calls and serves cached responses when the network request fails.
+
+**Offline write actions — sync queue:**
+
+When a member or admin takes an action while offline, the action is stored in IndexedDB (the browser's local database) as a pending operation. A sync queue processor runs when connectivity returns. Actions that can be queued offline include: event attendance check-in, meeting attendance marking, chat message sending, vote casting, and ledger entry creation. Each queued action stores the table name, operation type (insert/update), payload, and a timestamp. When online status is detected (via the browser's navigator.onLine event and a periodic ping to Supabase), the queue processor runs each pending action in order and clears successfully processed items. If an action fails on sync (for example a vote that closed while offline), the user gets a toast notification explaining what could not be synced and why.
+
+**Offline indicator:**
+
+A persistent banner appears at the top of every page when the app detects it is offline. It says "You are offline — some features are unavailable. Changes will sync when you reconnect." The banner disappears when connectivity returns and shows "Back online — syncing your changes" briefly before dismissing.
+
+**Service worker implementation:**
+
+Use Vite PWA plugin (`vite-plugin-pwa`) which handles service worker generation and registration automatically. Configuration specifies which routes to precache and which runtime caching strategies to apply per URL pattern.
+
+```bash
+npm install vite-plugin-pwa
+```
+
+---
+
+## 3. Member Identity Verification — Pro Plan Feature
+
+### What Was Missing
+
+Any person with an email address could register and request to join any NGO with no way to verify they are who they claim to be. For organizations working with vulnerable populations or holding sensitive membership lists, this is a genuine safety and data integrity risk. Storing unverified identity claims also creates legal exposure.
+
+### Full Solution
+
+**Admin-controlled verification requirement:**
+
+In Settings > Members, the admin has a toggle: "Require identity document verification for membership." This is disabled by default. When enabled, new membership requests must include an uploaded identity document before the admin can approve them. The toggle is only available on the Pro plan — organizations on lower plans can still approve members manually without document verification.
+
+**Supported document types:**
+
+The registration join request form, when verification is required, shows a document upload section with a dropdown for document type: National ID (Rwanda), Passport, Student ID, Refugee Document (UNHCR), Residence Permit, Visa, or Other Official Document. Admin can configure in settings which document types they accept. After selecting the type, the member uploads a photo or scan of the document. The file uploads to a private Supabase Storage bucket named `identity-documents` with strict RLS policies — only the org admin and the user themselves can access it.
+
+**External table — not in main schema:**
+
+Identity documents are stored in a completely separate table that is not joined to any other table in normal queries. This is intentional to minimize the exposure of sensitive personal data. The main org_members table has only a `verification_status` column and a `verified_at` timestamp — it does not store or reference the document itself. The document lives in a separate `identity_verifications` table that is queried only when explicitly needed.
+
+**Verification workflow:**
+
+When a member uploads a document, the admin sees a "Verify Identity" button on the pending member's row in the Members table. Clicking opens a secure viewer showing the document image with zoom capability. The admin reviews it and clicks Approve Document or Reject Document. On approval, `org_members.verification_status` is set to verified and the admin is returned to the normal member approval flow. The document image itself is never shown again in normal use — it is archived. The admin can access it later only from the member's detail drawer under a locked "Identity Documents" tab that requires a secondary confirmation click before opening, to prevent accidental exposure.
+
+**Suspicion-based re-verification:**
+
+At any time, admin can flag a member for re-verification from their detail drawer. This sets verification_status back to pending and notifies the member they need to re-submit their document. This handles cases where a member's identity is later questioned.
+
+**Database schema:**
+
+```sql
+ALTER TABLE org_members
+  ADD COLUMN verification_status VARCHAR(20) DEFAULT 'not_required'
+    CHECK (verification_status IN (
+      'not_required','pending','verified','rejected','flagged'
+    )),
+  ADD COLUMN verified_at TIMESTAMPTZ,
+  ADD COLUMN verified_by UUID REFERENCES users(id);
+
+-- Separate table, minimal joins, Pro plan only
+CREATE TABLE identity_verifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID REFERENCES org_members(id) ON DELETE CASCADE,
+  org_id UUID REFERENCES organizations(id),
+  document_type VARCHAR(50) NOT NULL,
+  document_url TEXT NOT NULL,
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by UUID REFERENCES users(id),
+  review_notes TEXT,
+  status VARCHAR(20) DEFAULT 'pending'
+    CHECK (status IN ('pending','approved','rejected'))
+);
+
+-- Index for fast lookup without table scanning
+CREATE INDEX idx_identity_member ON identity_verifications(member_id);
+CREATE INDEX idx_identity_org ON identity_verifications(org_id, status);
+```
+
+---
+
+## 4. Attendance Beyond Events and Meetings
+
+### What Was Missing
+
+The attendance system only existed for formally created events and meetings. Field visits, community outreach sessions, beneficiary home visits, and informal gatherings had no tracking mechanism. Additionally, there was no way to communicate different messages to those who attended versus those who did not, and no template system for sending personalized attendance-based messages.
+
+### Full Solution
+
+**Activity Log — initialized from admin dashboard:**
+
+The admin dashboard home has a floating "Record Activity" button (a green plus icon in the bottom right corner of the dashboard content area, not a floating action button over the whole screen). Clicking opens a drawer for quick activity logging without navigating away. The activity log is also accessible as a full page at `/:orgSlug/admin/activity-log`.
+
+An activity record contains: activity title, date, location (free text), description, program link (optional), and a member attendance selector. The attendance selector is a searchable list of all active members with checkboxes. Admin checks everyone who was present. Submitting creates an `activity_logs` record and individual `activity_attendance` records per checked member.
+
+**Differentiated post-attendance notifications:**
+
+After saving an activity log, the system immediately presents the admin with a notification panel. This panel has two sections side by side: "Message to attendees" and "Message to absent members." Each section has a template selector dropdown and a message composer. The message composer supports personalization variables that are replaced per member before sending:
+
+```
+{{member_name}}       → "Alice Mukamana"
+{{member_first_name}} → "Alice"
+{{activity_title}}    → "Community Health Outreach"
+{{activity_date}}     → "Saturday, 24 May 2026"
+{{org_name}}          → "Kigali Youth Network"
+{{admin_name}}        → "Gaby Prince"
+```
+
+A sample message for attendees:
+```
+Dear {{member_first_name}}, thank you for joining us at 
+{{activity_title}} on {{activity_date}}. Your presence 
+and commitment make {{org_name}} stronger. See you at 
+our next gathering!
+```
+
+A sample message for absent members:
+```
+Dear {{member_first_name}}, we missed you at 
+{{activity_title}} on {{activity_date}}. We hope 
+everything is well. Please reach out to us if you 
+need any support — {{org_name}} is here for you.
+```
+
+Admin can edit these before sending, save them as templates for future use, or skip sending entirely. Sending delivers the message as an in-app notification to each member with their personalized version. The system replaces variables per recipient before delivery.
+
+**Pre-built template library:**
+
+The admin dashboard has a "Message Templates" section (under Settings > Communication Templates) with a pre-loaded library of common templates organized by occasion: Attendance Thank You, Absence Follow-up, Meeting Reminder, Dues Reminder, Welcome New Member, Event Invitation, Congratulations, General Announcement. Admin can edit any template, create new ones, and delete ones they do not need. All templates support the variable system.
+
+**Database schema:**
+
+```sql
+CREATE TABLE activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  program_id UUID REFERENCES programs(id),
+  title VARCHAR(300) NOT NULL,
+  description TEXT,
+  location TEXT,
+  activity_date DATE NOT NULL,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE activity_attendance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  activity_id UUID REFERENCES activity_logs(id) ON DELETE CASCADE,
+  member_id UUID REFERENCES org_members(id),
+  recorded_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(activity_id, member_id)
+);
+
+CREATE TABLE message_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name VARCHAR(200) NOT NULL,
+  occasion VARCHAR(100),
+  subject VARCHAR(300),
+  body TEXT NOT NULL,
+  variables TEXT[],
+  is_system_template BOOLEAN DEFAULT false,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE notification_sends (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id),
+  template_id UUID REFERENCES message_templates(id),
+  sent_by UUID REFERENCES users(id),
+  recipient_group VARCHAR(30),
+  recipient_count INT,
+  activity_id UUID REFERENCES activity_logs(id),
+  event_id UUID REFERENCES events(id),
+  meeting_id UUID REFERENCES meetings(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+## 5. Financial Accountability + Role Promotion
+
+### What Was Missing
+
+Members had zero visibility into organizational finances creating a trust gap that is one of the most common reasons NGO members disengage or resign. Additionally, admins had no way to promote a regular member to admin level to share management responsibilities. When two admins make changes there was no clear picture of how those changes interact and affect the organization as a shared entity.
+
+### Full Solution
+
+**Financial summary visible to members:**
+
+When the admin enables the financial summary toggle in Settings > Finance, members see a "Organization Finance" card on their dashboard. This card shows — in plain readable language, not a ledger — the current period's summary: Total Income (RWF X), Total Expenses (RWF X), Current Balance (RWF X), and a breakdown bar showing the top 3 spending categories by percentage. No individual entries are shown. No vendor names, no payee details. Just category totals and the balance. The toggle controls exactly which elements are visible — admin can choose to show only the balance, only income, or the full summary.
+
+**Role promotion — admin changes member to admin:**
+
+From the Members management page, any existing org_admin can change another member's role. The row actions menu on any member row includes "Change Role." Clicking opens a modal showing the role selector and, critically, the permissions panel. The role selector has two options visible in the UI: Member and Admin. The superadmin role is not shown anywhere.
+
+When Admin is selected, a second section appears in the modal: "Grant Permissions." This shows a checklist of specific permissions:
+
+```
+☑ Manage Members          (approve, suspend, edit member records)
+☑ Manage Content          (create news, events, meetings, programs)
+☐ Manage Finance          (access ledger, donors, grants, reports)
+☐ Manage Settings         (change org settings, branding, billing)
+☑ View Analytics          (access analytics dashboard)
+☑ Manage Documents        (upload, delete, set access levels)
+```
+
+Admin saves the selection. The new admin receives a notification: "Your role has been updated. You now have admin access to [org name]." On their next login or page refresh, their sidebar updates to show only the sections they have been granted access to. If they have Manage Content but not Manage Finance, they see Events, Meetings, News, Programs, Goals, Votes in their sidebar but the Finance section (Grants, Ledger, Donors, Reports) is hidden entirely.
+
+**Shared admin effect — changes affect the whole org:**
+
+This is already inherent in the data model since all data is scoped by org_id. When admin A creates an event, admin B sees it immediately. When admin A approves a member, that member appears in admin B's member list instantly via Supabase Realtime. The important addition is an audit trail (covered in point 12) so that when admin B asks "who approved this person?" or "who deleted that event?", the answer is traceable. A subtle "Last edited by [name]" label appears on editable records — events, meetings, posts, goals — showing the last admin who touched that record.
+
+**Database schema for permissions:**
+
+```sql
+ALTER TABLE org_members
+  ADD COLUMN permissions JSONB DEFAULT '{
+    "manage_members": false,
+    "manage_content": false,
+    "manage_finance": false,
+    "manage_settings": false,
+    "view_analytics": false,
+    "manage_documents": false
+  }';
+
+-- When role = org_admin, permissions are checked
+-- When role = member, permissions are ignored
+-- Helper function for permission check
+CREATE OR REPLACE FUNCTION has_permission(
+  member_id UUID, 
+  permission TEXT
+) RETURNS BOOLEAN AS $$
+  SELECT 
+    role = 'org_admin' AND 
+    (permissions->permission)::boolean = true
+  FROM org_members 
+  WHERE id = member_id;
+$$ LANGUAGE sql SECURITY DEFINER;
+```
+
+---
+
+## 6. Quorum Tracking for Meetings
+
+### What Was Missing
+
+Meetings recorded attendance but never evaluated whether the attendance was sufficient for the meeting to be constitutionally valid. Organizations with formal constitutions requiring a minimum number present for decisions to be binding had no tool to enforce or even track this. Decisions made without quorum could later be challenged internally, causing governance conflicts.
+
+### Full Solution
+
+**Setup — admin defines quorum in org settings:**
+
+In Settings > Governance, the admin sets the organization's quorum requirement. This can be set as either an absolute number ("20 members must be present") or a percentage of active members ("More than 50% of active members must be present"). The system stores both the type and value. If percentage-based, the quorum number is calculated dynamically at meeting time based on current active member count.
+
+**Real-time quorum display during meetings:**
+
+When the admin opens a meeting and starts recording attendance, the top of the attendance panel shows a live quorum tracker. It displays as a progress bar and a plain text statement: "14 of 20 required members present — Quorum not yet reached" or "22 of 20 required members present — Quorum reached." The tracker updates instantly as each member is marked present. When quorum is first reached, the bar turns green and a subtle success animation plays.
+
+**Meeting validity status:**
+
+When a meeting is saved as Completed, the system records whether quorum was reached at the time of completion. This is stored as `quorum_reached BOOLEAN` and `quorum_count_at_completion INT` on the meetings table. The meeting detail page shows a clear banner: a green "Quorum Reached — Meeting decisions are valid" or a red "Quorum Not Reached — Decisions made in this meeting may not be constitutionally valid. Consider re-voting at the next meeting."
+
+**Analytics integration:**
+
+The analytics page shows a Governance section with: percentage of meetings that reached quorum over time as a line chart, average attendance vs quorum threshold as a bar chart, and a table of the last 10 meetings with their quorum status. This helps admin identify patterns — if quorum is consistently missed on certain days or times, they can adjust scheduling.
+
+**Database schema:**
+
+```sql
+ALTER TABLE organizations
+  ADD COLUMN quorum_type VARCHAR(20) DEFAULT 'absolute'
+    CHECK (quorum_type IN ('absolute', 'percentage')),
+  ADD COLUMN quorum_value INT DEFAULT 0;
+
+ALTER TABLE meetings
+  ADD COLUMN quorum_required INT,
+  ADD COLUMN quorum_reached BOOLEAN DEFAULT false,
+  ADD COLUMN quorum_count_at_completion INT,
+  ADD COLUMN attendance_count INT DEFAULT 0;
+```
+
+---
+
+## 7. Document Signing and Acknowledgement
+
+### What Was Missing
+
+Documents were uploaded and downloadable but there was no mechanism to confirm that members had received and read critical documents. For governance compliance, employment agreements, policy documents, and constitutions — the organization needed proof of acknowledgement. The admin had no visibility into who had and had not acknowledged a document.
+
+### Full Solution
+
+**Admin marks document as requiring acknowledgement:**
+
+When uploading or editing any document, admin sees a toggle: "Require member acknowledgement." Enabling it reveals an optional deadline field — "Members must acknowledge by [date]." After saving, every member who has access to that document sees a notification: "A document requires your acknowledgement — [document name]." The document appears in a dedicated "Requires Your Signature" section at the top of the Documents page and on the member's dashboard home as a priority card.
+
+**Member acknowledgement flow:**
+
+The member clicks the document. After the document viewer loads, a banner at the bottom reads: "By clicking Acknowledge below, you confirm you have read and understood this document." Two buttons: "Read Later" (dismisses the banner temporarily) and "Acknowledge." Clicking Acknowledge inserts a record into `document_acknowledgements` with the member ID, document ID, timestamp, and document version number. The document then shows a green "Acknowledged" badge in their list.
+
+**Admin visibility — who signed:**
+
+Inside the document detail page (admin view), a new tab called "Acknowledgements" shows two lists side by side. Left list: members who have acknowledged — their name, avatar, date acknowledged, and version they acknowledged. Right list: members who have not yet acknowledged — their name, member type, and days since the document was uploaded. Admin can send a bulk reminder to all unacknowledged members with one click, using the message template system. The reminder sends as an in-app notification with the document name and a direct link.
+
+**Version tracking for acknowledgements:**
+
+When admin uploads a new version of a document that previously required acknowledgement, the system automatically resets acknowledgement status for all members — the new version requires fresh acknowledgement. Members who acknowledged v1 do not automatically count as having acknowledged v2. The acknowledgements table stores version number so the history of which member acknowledged which version is permanently preserved.
+
+**Database schema:**
+
+```sql
+ALTER TABLE documents
+  ADD COLUMN requires_acknowledgement BOOLEAN DEFAULT false,
+  ADD COLUMN acknowledgement_deadline DATE;
+
+CREATE TABLE document_acknowledgements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+  member_id UUID REFERENCES org_members(id),
+  org_id UUID REFERENCES organizations(id),
+  document_version INT NOT NULL,
+  acknowledged_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(document_id, member_id, document_version)
+);
+
+CREATE INDEX idx_doc_ack_document ON document_acknowledgements(document_id);
+CREATE INDEX idx_doc_ack_member ON document_acknowledgements(member_id);
+CREATE INDEX idx_doc_ack_org ON document_acknowledgements(org_id);
+```
+
+---
+
+## 8. Resignation and Exit Process
+
+### What Was Missing
+
+Members had no formal way to leave an organization. The only options were admin-initiated suspension or deletion. There was no member-initiated exit, no exit record for governance purposes, no offboarding workflow, and no way for the organization to understand why members were leaving — which is critical information for improving retention.
+
+### Full Solution
+
+**Member-initiated resignation:**
+
+In member Settings, a section called "Membership" shows the member's current status, join date, and membership tier. At the bottom, a "Leave this Organization" link in muted red text. Clicking opens a full-page confirmation flow, not just a simple dialog, to prevent accidental resignation. The flow has three steps.
+
+Step 1 shows what they will lose access to when they leave — their chat history (readable but not writable), their attendance records (preserved), their documents access. Step 2 asks for a reason via a multiple-choice selector: Personal reasons, Relocating, Disagree with direction, Work commitments, Found another organization, Other. An optional free-text field allows elaboration. Step 3 is the final confirmation: "Type LEAVE to confirm." This three-step process ensures the action is intentional.
+
+**What happens on resignation:**
+
+`org_members.status` is set to `resigned`. A `resignations` record is created. The member immediately loses dashboard access for this organization. If they belong to other organizations, they retain access to those. The admin receives a notification: "[Member name] has resigned from [org name]." The member's chat messages, attendance records, and all their contributions remain intact — the data is not deleted. Their name shows as "[Member - Resigned]" in historical records.
+
+**Admin response — retention option:**
+
+When the admin opens the resignation notification, they see a drawer with the resignation reason and a "Respond" button. Clicking lets them send a personal message to the resigning member before the resignation is fully processed. There is a 24-hour window after resignation submission during which the member can cancel their resignation from a confirmation email sent to their registered email address. After 24 hours the resignation is finalized automatically.
+
+**Exit analytics:**
+
+The analytics page includes a Retention section showing monthly resignation count, resignation reasons breakdown as a pie chart, average membership duration before resignation, and a table of recent resignations with reasons. This data is anonymized in the chart view — reasons are counted without names — but the detailed table (admin only) shows individual records.
+
+**Database schema:**
+
+```sql
+CREATE TABLE resignations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID REFERENCES org_members(id),
+  org_id UUID REFERENCES organizations(id),
+  reason_category VARCHAR(100),
+  reason_detail TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  finalized_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
+  status VARCHAR(20) DEFAULT 'pending'
+    CHECK (status IN ('pending','finalized','cancelled')),
+  admin_response TEXT,
+  admin_responded_at TIMESTAMPTZ,
+  admin_responded_by UUID REFERENCES users(id)
+);
+```
+
+---
+
+## 9. Multi-Admin Roles and Granular Permissions
+
+### What Was Missing
+
+The system had a binary role model — you were either a full admin with access to everything or a regular member with access to nothing administrative. Real organizations have treasurers, secretaries, program officers, and committee chairs who need partial admin access. Giving full admin access to everyone with any administrative responsibility is a governance and security risk.
+
+### Full Solution
+
+**Role hierarchy:**
+
+The application has the following roles, all stored in `org_members.role`:
+
+```
+superadmin   → platform level, never shown in org UI
+org_admin    → full org control, sets all permissions
+manager      → partial admin, permissions set by org_admin
+member       → standard access, no admin features
+```
+
+The `manager` role is new. It is a partial admin who has exactly the permissions granted by the org_admin — nothing more, nothing less. The org_admin can create as many managers as needed.
+
+**Permission system — what each permission unlocks in the sidebar:**
+
+```
+manage_members    → Members page full access
+manage_content    → Events, News, Meetings, Programs, Goals, Votes
+manage_finance    → Grants, Ledger, Donors, Reports
+manage_settings   → Settings page (except Subscription and Billing)
+view_analytics    → Analytics page
+manage_documents  → Documents full access including upload/delete
+manage_chat       → Create channels, moderate messages
+```
+
+**How promotion works:**
+
+From Members > row actions > Change Role, org_admin selects Manager. The permissions checkboxes appear. Admin checks what this person should access. Save. The promoted member gets a notification. Next time they log in, their sidebar shows only the sections they have been granted. Their dashboard header shows a "Manager" badge instead of "Member."
+
+**Permission inheritance rule:**
+
+A manager cannot grant permissions to other members that exceed their own permissions. If a manager has manage_content but not manage_finance, they cannot promote another member to have manage_finance. Only the org_admin can grant permissions above a manager's own level. This prevents privilege escalation.
+
+**Dashboard adaptation by permissions:**
+
+The sidebar component reads the active member's permissions object on load. It renders nav items conditionally based on permissions. The route guards also check permissions server-side via RLS policies — so even if someone manipulates the frontend, the Supabase queries return empty results or permission-denied errors without the correct role.
+
+**Database schema optimization:**
+
+```sql
+ALTER TABLE org_members
+  ADD COLUMN role VARCHAR(30) DEFAULT 'member'
+    CHECK (role IN ('superadmin','org_admin','manager','member'));
+
+-- Permissions JSONB with defaults
+ALTER TABLE org_members
+  ADD COLUMN permissions JSONB DEFAULT '{
+    "manage_members": false,
+    "manage_content": false,
+    "manage_finance": false,
+    "manage_settings": false,
+    "view_analytics": false,
+    "manage_documents": false,
+    "manage_chat": false
+  }';
+
+-- Fast permission lookup function
+CREATE OR REPLACE FUNCTION check_permission(
+  p_member_id UUID,
+  p_permission TEXT
+) RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT CASE
+    WHEN role = 'org_admin' THEN true
+    WHEN role = 'manager' THEN (permissions->>p_permission)::boolean
+    ELSE false
+  END
+  FROM org_members WHERE id = p_member_id;
+$$;
+
+-- Index for permission-based queries
+CREATE INDEX idx_members_role_org ON org_members(org_id, role);
+CREATE INDEX idx_members_permissions ON org_members 
+  USING gin(permissions);
+```
+
+---
+
+## 10. Event Registration vs Attendance — RSVP System
+
+### What Was Missing
+
+Members could only record attendance at an event — meaning on the day of the event itself. There was no way for members to signal interest or confirm participation in advance. Admins could not know how many people to prepare for and could not plan materials, catering, transport, or venue size based on actual expected turnout rather than guesswork.
+
+### Full Solution
+
+**Member RSVP flow:**
+
+On the Events page, upcoming events show an RSVP section below the event details. Three buttons: "I'll be there" (Yes), "Can't make it" (No), "Maybe." Tapping one immediately records the response and shows feedback — the button fills with color and a confirmation text appears: "You're confirmed!" or "You've declined." Members can change their RSVP at any time before the event. The RSVP count (Yes responses) appears on the event card in the list view so all members can see how many people are coming.
+
+**Admin RSVP visibility:**
+
+On the admin's event management page, the RSVP tab shows a live count: Attending (X), Not Attending (X), Maybe (X), No Response (X of total members). Below the counts is the full list showing each member's name, avatar, their response, and the time they responded. Admin can export this as CSV for planning. A "Send reminder" button sends a notification to all members who have not yet responded.
+
+**RSVP to attendance conversion:**
+
+On the day of the event, the attendance tab shows all RSVP-Yes members pre-highlighted in the member list with a "Confirmed" label. Admin marks actual attendance by checking who physically showed up. The system then calculates RSVP accuracy — what percentage of "Yes" RSVPs actually attended — which appears in the event analytics and trends over time in the analytics page to help admin understand how reliable their members' RSVPs are.
+
+**Capacity enforcement:**
+
+If the event has a `max_attendees` set, the RSVP system prevents new Yes responses once the count reaches capacity. Members who try to RSVP Yes after capacity is full see: "This event is at full capacity. Join the waitlist?" Confirming adds them to a `event_waitlist` table. If a confirmed attendee changes their RSVP to No, the first person on the waitlist automatically receives a notification that a spot is available.
+
+**Database schema:**
+
+```sql
+CREATE TABLE event_rsvps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  member_id UUID REFERENCES org_members(id),
+  response VARCHAR(10) NOT NULL
+    CHECK (response IN ('yes','no','maybe')),
+  responded_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(event_id, member_id)
+);
+
+CREATE TABLE event_waitlist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  member_id UUID REFERENCES org_members(id),
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  notified_at TIMESTAMPTZ,
+  UNIQUE(event_id, member_id)
+);
+
+CREATE INDEX idx_rsvp_event ON event_rsvps(event_id, response);
+CREATE INDEX idx_rsvp_member ON event_rsvps(member_id);
+```
+
+---
+
+## 11. Communication Templates
+
+### What Was Missing
+
+Every message — whether a dues reminder, meeting notification, attendance follow-up, or welcome message — was typed from scratch each time. This created inconsistency in tone and wasted admin time. There was no variable substitution system, no template library, and no way to send bulk personalized messages efficiently.
+
+### Full Solution
+
+**Template management page:**
+
+At Settings > Communication Templates, admin manages their template library. The page shows a grid of template cards grouped by occasion. Each card shows the template name, a preview of the first line, the occasion tag, and quick actions: Edit, Duplicate, Delete. A "New Template" button opens the template editor.
+
+**Template editor:**
+
+The editor has: template name field, occasion selector (dropdown of categories), subject field (for email-style notifications), and a body editor. The body editor is a rich text editor that also supports variable insertion. A "Variables" button opens a sidebar listing all available variables with descriptions and example outputs. Clicking a variable inserts it at the cursor position as a highlighted chip: `{{member_first_name}}`.
+
+**Available variables:**
+
+```
+{{member_name}}           Full name
+{{member_first_name}}     First name only
+{{org_name}}              Organization name
+{{admin_name}}            Sending admin's name
+{{event_title}}           For event-related templates
+{{event_date}}            Formatted event date
+{{event_location}}        Event venue
+{{meeting_title}}         For meeting templates
+{{meeting_date}}          Formatted meeting date
+{{dues_amount}}           For dues templates
+{{dues_year}}             Dues period year
+{{deadline_date}}         For reminder templates
+{{document_title}}        For document templates
+{{activity_title}}        For activity templates
+{{activity_date}}         Activity date
+{{join_date}}             Member's join date
+{{member_number}}         Member's ID number
+```
+
+**Sending templates:**
+
+Templates appear as dropdown selectors in every place where admin sends messages: the Activity Log attendance notification panel, the bulk notification sender in Members page, the RSVP reminder sender in Events, the dues reminder in member detail, and the document acknowledgement reminder. Selecting a template populates the message composer with the template body. Admin can edit before sending. Variables are replaced per recipient when the message is delivered.
+
+**System templates — pre-loaded:**
+
+On organization creation, a set of system templates is automatically created as starting points. System templates have `is_system_template = true` and cannot be deleted (only duplicated and customized). They include: Welcome New Member, Dues Reminder, Meeting Reminder, Event Invitation, Attendance Thank You, Absence Follow-up, Document Acknowledgement Request, Vote Reminder, and Resignation Acknowledgement.
+
+---
+
+## 12. Audit Trail — Full Traceability
+
+### What Was Missing
+
+There was no record of who did what and when across the platform. If a member was deleted, a financial entry edited, a role changed, or a document removed — there was no way to trace the action back to the person who performed it. For organizational governance and accountability this is a critical gap.
+
+### Full Solution
+
+**What gets audited — every significant action:**
+
+Every write operation that changes organizational data creates an audit log entry. This includes: member approved, member suspended, member role changed, member permissions changed, event created/edited/deleted, meeting created/minutes edited, post published/deleted, document uploaded/deleted/access-changed, ledger entry created/edited/deleted, goal created/updated/completed, vote created/closed, program created/edited, settings changed (each setting change is one record), subscription payment submitted, donation confirmed/rejected, and any bulk action (with count of affected records).
+
+**Audit log table design for efficiency:**
+
+The audit table is append-only — no updates, no deletes. It is indexed for fast querying by org, by user, by table, and by date range. The `old_value` and `new_value` JSONB columns store only the fields that changed, not the entire record, to keep storage efficient.
+
+**Admin audit log page:**
+
+At Settings > Audit Log (visible only to org_admin with manage_settings permission), admin sees a filterable table of all audit events. Filters: date range picker, action type dropdown, performed by (member selector). Each row shows: timestamp, action performed (human-readable label, not a code), who performed it (name + avatar), affected record (clickable link that navigates to the record if it still exists), and a "Details" button showing the before and after values side by side.
+
+**Superadmin audit:**
+
+Superadmin sees a platform-level audit log at `/platform/admin/audit` showing all actions across all organizations — useful for investigating reports of data abuse or unauthorized changes.
+
+**Database schema:**
+
+```sql
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organizations(id),
+  performed_by UUID REFERENCES users(id),
+  action VARCHAR(100) NOT NULL,
+  action_label VARCHAR(200) NOT NULL,
+  target_table VARCHAR(100),
+  target_id UUID,
+  target_label VARCHAR(300),
+  old_value JSONB,
+  new_value JSONB,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Optimized indexes for common queries
+CREATE INDEX idx_audit_org_date 
+  ON audit_logs(org_id, created_at DESC);
+CREATE INDEX idx_audit_user 
+  ON audit_logs(performed_by, created_at DESC);
+CREATE INDEX idx_audit_table 
+  ON audit_logs(target_table, target_id);
+CREATE INDEX idx_audit_action 
+  ON audit_logs(org_id, action);
+
+-- Audit trigger function
+CREATE OR REPLACE FUNCTION log_audit_event(
+  p_org_id UUID,
+  p_user_id UUID,
+  p_action VARCHAR,
+  p_label VARCHAR,
+  p_table VARCHAR,
+  p_target_id UUID,
+  p_target_label VARCHAR,
+  p_old JSONB DEFAULT NULL,
+  p_new JSONB DEFAULT NULL
+) RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+  INSERT INTO audit_logs(
+    org_id, performed_by, action, action_label,
+    target_table, target_id, target_label,
+    old_value, new_value
+  ) VALUES (
+    p_org_id, p_user_id, p_action, p_label,
+    p_table, p_target_id, p_target_label,
+    p_old, p_new
+  );
+$$;
+```
+
+---
+
+## Complete Additional Database Schema Summary
+
+All new tables and columns added across all 12 sections:
+
+```sql
+-- New tables
+poll_messages, poll_responses
+activity_logs, activity_attendance
+message_templates, notification_sends
+event_rsvps, event_waitlist
+identity_verifications
+document_acknowledgements
+resignations
+audit_logs
+support_conversations, support_messages
+
+-- New columns on existing tables
+chat_channels: channel_type, is_private, created_by
+chat_messages: message_type, file_url, file_name,
+  file_size, file_mime_type, voice_duration_seconds, reply_to_id
+org_members: verification_status, verified_at, verified_by,
+  permissions JSONB, role updated to include 'manager'
+organizations: quorum_type, quorum_value
+meetings: quorum_required, quorum_reached,
+  quorum_count_at_completion, attendance_count
+documents: requires_acknowledgement, acknowledgement_deadline
+```
+
+Every table has org_id for multi-tenancy readiness when you scale from single-org to multi-org later. Every table has created_at for chronological queries. Every table that needs it has an index on org_id plus the most common filter column so queries stay fast as data grows.
+
+
+
+
+
+
+
+
+
+
+
+i need to add the validations on date like not to make meeting before the current date they must make it frontward 
+then i need the notification well working when they has  some thing to announce on dashboard make sure every element can be
+translated on news feed of admin there are no delete and update buttons 
+
+!! here is thing this is for multilple different organization so in text avoid to prespecify ngo or kind of organizarion say it depend on
+the current organozation don't say anything about tree on landing just say it impact in deffrent sectors in geneneral except for oned who are o n their
+specific pages make sure all things include forms place holders and each text "word" on ui if you want to specify base on organization category or data from database
+by default all member must be in general group for organization for other group admin can make them and select who must join them
+
+on events i need them to be set on current moment forwad and on members dashboard must have the qrcodescto read the qrcode and make attendence 
+and meeting must be same time validated on setting goal i need you to not make that taraget value and metrics required make them optional and 
+make in inserting add the starting data too in database 
+
+on update goal make it record it progress and it can be displayed even can be expressed in percentagesand number when they set number in setting goal
+there are 3 default documment so i need you to remove them and allow user to drag and drop new ones and add detail and add the name of the uploader and other user 
+can read them by file handling on impact tracker i need to remove all default data as well as other data which are not in database   
+
+all organizations is not about trees system  must allow to customize everything about the organization by use it current data base on database it to improve the organization 
+user experince and and to make user be able to flow it well and all graph must be data driven real data from database not random  things 
+
+while we has new organozation make offbording metrics & resignation trends 0 but start calculate them when they happened on members on members i need you to add the voluntear list 
+in order to manage them the ledger is accurate 
+
+on page of donors member must create in order to add new donation as well as grants make sure funded link(optional) as well as other forms add the validations like for for number must \
+be numbers i need whole application to translate everything even pop up and forms to update 
+
+annual reports as well as reports they must be real based on real data from database and the admin must refresh the page to update the report with the data from database 
+the dark mode must affect the inputs for data and every thing 
+
+after submission of the prof user must see the success messages after or when there is error user must see it if some thing fails for every card of subscription plan user must see the money in 
+US dollar and the currency user selected  
+
+ Review Needed & Remaining Tasks
+The file v2addons.txt contains a comprehensive design spec for features described as "V1 - Updated Feature Specifications". There is a significant amount of requested functionality in the design spec that has not yet been fully implemented in the code (e.g., the complex Real-Time Chat System, Offline PWA Implementation, Member Identity Verification, etc.).
+Points from your recent requests that still need action:
+Offboarding/Resignation Metrics: Need to implement the logic to set these to 0 initially and track them as events occur.
+Volunteer List: The request for adding a volunteer list in Members management is not yet implemented.
+Validation: Need to apply number-only validations consistently across all forms handling numerical inputs (Donations, Grants, etc.).
+Localization/Translation: While the localization suite is in the spec, ensuring every popup, automated message, and error alert is translated requires a systematic pass through the UI components.
+Payment Data: Ensuring payment pages pull real data from the database rather than hardcoded constants.
+Real-time Reports: Refresh mechanisms for reports based on real database data.
+Theme Consistency: Applying the dark mode correctly to all input fields and form elements.
+Feedback/UI States: Implementing consistent success/error toast messages for all form submissions.
+Currency Formatting: Ensuring subscription cards display both USD and the user-selected currency.
+

@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+}
+
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* Backgrounds */
+  --bg-primary:    #F8FAFC;   /* page background */
+  --bg-secondary:  #F1F5F9;   /* sidebar, panels */
+  --bg-card:       #FFFFFF;   /* cards, modals */
+  --bg-subtle:     #F0FDF4;   /* green-tinted areas */
+  /* Text */
+  --text-primary:  #0F172A;   /* headings */
+  --text-secondary:#374151;   /* body text */
+  --text-muted:    #64748B;   /* captions, metadata */
+  --text-faint:    #9CA3AF;   /* placeholders */
+  /* Brand — these never change between light/dark */
+  --brand-primary: #15803D;   /* Impacto green — buttons, active states */
+  --brand-dark:    #14532D;   /* dark green — headings, accents */
+  --brand-light:   #DCFCE7;   /* light green — badges, highlights */
+  --brand-amber:   #F59E0B;   /* amber — warnings, secondary accent */
+  --brand-amber-l: #FEF3C7;   /* amber light */
+  /* Borders & dividers */
+  --border:        #E2E8F0;
+  --border-light:  #F1F5F9;
+  /* Semantic */
+  --success:       #15803D;
+  --warning:       #D97706;
+  --danger:        #DC2626;
+  --info:          #1D4ED8;
+
+  /* Organization Theme Accent Default (Impacto Green) */
+  --org-primary:   #15803D;
+  --org-primary-l: rgba(21, 128, 61, 0.12);
+  --org-primary-d: #14532D;
+  --org-secondary: #F59E0B;
+}
+
+[data-theme="dark"] {
+  --bg-primary:    #0F172A;
+  --bg-secondary:  #1E293B;
+  --bg-card:       #1E293B;
+  --bg-subtle:     #0D2016;
+  --text-primary:  #F8FAFC;
+  --text-secondary:#CBD5E1;
+  --text-muted:    #64748B;
+  --text-faint:    #475569;
+  --border:        #334155;
+  --border-light:  #1E293B;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Ensure all inputs, textareas, select elements, and labels respect dark mode */
+[data-theme="dark"] input, 
+[data-theme="dark"] select, 
+[data-theme="dark"] textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+[data-theme="dark"] input::placeholder, 
+[data-theme="dark"] textarea::placeholder {
+  color: #64748b !important;
+}
+[data-theme="dark"] select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] label, 
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-800,
+[data-theme="dark"] .text-stone-800 {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .bg-white {
+  background-color: #1e293b !important;
+}
+[data-theme="dark"] .border-gray-200, 
+[data-theme="dark"] .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
